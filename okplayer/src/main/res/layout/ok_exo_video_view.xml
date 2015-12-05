@@ -13,7 +13,7 @@
     <LinearLayout
         android:id="@+id/video_title_bar"
         android:layout_width="match_parent"
-        android:layout_height="50dp"
+        android:layout_height="46dp"
         android:background="@color/haha"
         android:orientation="horizontal"
         android:visibility="gone">
@@ -23,19 +23,20 @@
             android:layout_width="27dp"
             android:layout_height="27dp"
             android:layout_gravity="center"
-            android:layout_marginLeft="20dp"
+            android:layout_marginLeft="15dp"
             android:background="@drawable/ic_arrow_back_white_48dp"/>
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_marginLeft="20dp"
+            android:layout_marginLeft="15dp"
             android:layout_weight="1"
             android:gravity="center_vertical"
             android:maxLines="1"
             android:singleLine="true"
-            android:text="【东方MMD】干物使！ 魔理沙酱！最终话 中篇 「全灭」神经病啊！！！"
-            android:textColor="#FFFFFF"/>
+            android:text="Belive"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"/>
 
         <ImageView
             android:id="@+id/video_hd"
@@ -44,14 +45,14 @@
             android:layout_gravity="center"
             android:layout_marginLeft="60dp"
             android:layout_marginRight="20dp"
-            android:background="@drawable/ic_filter_hdr_white_48dp"/>
+            android:background="@drawable/ic_high_quality_white_48dp"/>
 
         <ImageView
             android:id="@+id/video_danmaku"
             android:layout_width="27dp"
             android:layout_height="27dp"
             android:layout_gravity="center"
-            android:layout_marginRight="20dp"
+            android:layout_marginRight="15dp"
             android:background="@drawable/ic_subtitles_white_48dp"/>
 
     </LinearLayout>

@@ -1,7 +1,6 @@
 package org.succlz123.okplayer.view;
 
 import android.annotation.TargetApi;
-import android.app.Activity;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
@@ -95,7 +94,7 @@ public class OkVideoView extends RelativeLayout implements
         release();
     }
 
-    private void setup(Context context,  AttributeSet attrs) {
+    private void setup(Context context, AttributeSet attrs) {
         if (context == null) {
             return;
         }
@@ -119,13 +118,6 @@ public class OkVideoView extends RelativeLayout implements
 //        videoFrame = (AspectRatioFrameLayout) findViewById(R.id.video_frame);
         surfaceView = (CustomSurfaceView) findViewById(R.id.surface_view);
         root = (RelativeLayout) findViewById(R.id.root);
-
-        onTitleItemClick onTitleItemClick = new onTitleItemClick();
-
-        backImageView.setOnClickListener(onTitleItemClick);
-        hdImageView.setOnClickListener(onTitleItemClick);
-        danmukuImageView.setOnClickListener(onTitleItemClick);
-
 
         if (surfaceView != null) {
             initExoPlayer();
@@ -151,7 +143,7 @@ public class OkVideoView extends RelativeLayout implements
     /**
      * 读取自定义配置
      */
-    private void readAttributes(Context context,  AttributeSet attrs) {
+    private void readAttributes(Context context, AttributeSet attrs) {
         if (attrs == null || isInEditMode()) {
             return;
         }
@@ -411,13 +403,20 @@ public class OkVideoView extends RelativeLayout implements
         if (mediaController.isShowing()) {
             titleBar.setVisibility(GONE);
             mediaController.hide();
-            mHandler.removeMessages(1);
+//            mHandler.removeMessages(1);
         } else {
+            mediaController.show(5000);
             titleBar.setVisibility(VISIBLE);
-            mediaController.show(0);
-            Message message = mHandler.obtainMessage(1);
 
-            mHandler.sendMessageDelayed(message, 5000);
+            getHandler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    titleBar.setVisibility(VISIBLE);
+                }
+            },5000);
+//            Message message = mHandler.obtainMessage(1);
+
+//            mHandler.sendMessageDelayed(message, 5000);
         }
     }
 
@@ -436,20 +435,5 @@ public class OkVideoView extends RelativeLayout implements
         }
     };
 
-    private class onTitleItemClick implements OnClickListener {
-        @Override
-        public void onClick(View v) {
-            Context context = getContext();
-            if (context instanceof Activity) {
-                int i = v.getId();
-                if (i == R.id.video_back) {
-                    ((Activity) context).onBackPressed();
 
-                } else if (i == R.id.video_hd) {
-                } else if (i == R.id.video_danmaku) {
-                } else {
-                }
-            }
-        }
-    }
 }

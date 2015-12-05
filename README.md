@@ -1,4 +1,4 @@
-# OkDownload
+# OkPlayer
 This is an android multimedia player, simple wraps for [Google-ExoPlayer](https://github.com/google/ExoPlayer), the advantage of this library is very small.
 
 ![1](https://github.com/succlz123/okplayer/blob/master/screenshot/screenshot.png)

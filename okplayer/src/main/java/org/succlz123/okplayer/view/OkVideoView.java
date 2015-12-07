@@ -3,19 +3,14 @@ package org.succlz123.okplayer.view;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.TypedArray;
-import android.graphics.Bitmap;
-import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
-import android.os.Handler;
-import android.os.Message;
 import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.MediaController;
 import android.widget.RelativeLayout;
 
@@ -23,9 +18,7 @@ import com.google.android.exoplayer.AspectRatioFrameLayout;
 import com.google.android.exoplayer.ExoPlayer;
 import com.google.android.exoplayer.audio.AudioCapabilities;
 import com.google.android.exoplayer.audio.AudioCapabilitiesReceiver;
-import com.google.android.exoplayer.drm.UnsupportedDrmException;
 import com.google.android.exoplayer.text.Cue;
-import com.google.android.exoplayer.util.Util;
 
 import org.succlz123.okplayer.OkPlayer;
 import org.succlz123.okplayer.R;
@@ -43,18 +36,15 @@ public class OkVideoView extends RelativeLayout implements
         CaptionListener,
         SurfaceHolder.Callback,
         AudioCapabilitiesReceiver.Listener {
-    private LinearLayout titleBar;
-    private ImageView backImageView;
-    private ImageView hdImageView;
-    private ImageView danmukuImageView;
-    private ImageView previewImageView;
+
+    private AspectRatioFrameLayout videoFrame;
+    private SurfaceView surfaceView;
 
     private AudioCapabilitiesReceiver audioCapabilitiesReceiver;
-    private OkPlayer player;
-    private AspectRatioFrameLayout videoFrame;
-    private CustomSurfaceView surfaceView;
-    private RelativeLayout root;
+
     private MediaController mediaController;
+    private OkPlayer player;
+
     private Uri uri;
 
     private long playerPosition;
@@ -90,7 +80,6 @@ public class OkVideoView extends RelativeLayout implements
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        pause();
         release();
     }
 
@@ -106,18 +95,10 @@ public class OkVideoView extends RelativeLayout implements
      * 初始化view
      */
     private void initView(Context context) {
-        View.inflate(context, R.layout.ok_exo_video_view, this);
-//        addView(View.inflate(getContext(), R.layout.ok_exo_video_view, null));
-        previewImageView = (ImageView) findViewById(R.id.preview_image);
+        View.inflate(context, R.layout.ok_video_view, this);
 
-        titleBar = (LinearLayout) findViewById(R.id.video_title_bar);
-        backImageView = (ImageView) findViewById(R.id.video_back);
-        hdImageView = (ImageView) findViewById(R.id.video_hd);
-        danmukuImageView = (ImageView) findViewById(R.id.video_danmaku);
-
-//        videoFrame = (AspectRatioFrameLayout) findViewById(R.id.video_frame);
-        surfaceView = (CustomSurfaceView) findViewById(R.id.surface_view);
-        root = (RelativeLayout) findViewById(R.id.root);
+        videoFrame = (AspectRatioFrameLayout) findViewById(R.id.video_frame);
+        surfaceView = (SurfaceView) findViewById(R.id.surface_view);
 
         if (surfaceView != null) {
             initExoPlayer();
@@ -132,7 +113,6 @@ public class OkVideoView extends RelativeLayout implements
         audioCapabilitiesReceiver.register();
         player = new OkPlayer(null);
 
-//        listenerMux = new EMListenerMux(new MuxNotifier());
         player.addListener(this);
         player.setId3MetadataListener(null);
 
@@ -154,15 +134,15 @@ public class OkVideoView extends RelativeLayout implements
         }
 
         boolean enableDefaultControls = typedArray.getBoolean(R.styleable.OkExoPlayerVideoView_ControlsEnabled, false);
-        setControlsEnabled(enableDefaultControls);
+        setDefaultControlsEnabled(enableDefaultControls);
 
         typedArray.recycle();
     }
 
-    public void setControlsEnabled(boolean enabled) {
+    public void setDefaultControlsEnabled(boolean enabled) {
         if (enabled) {
             mediaController = new MediaController(getContext());
-            mediaController.setAnchorView(root);
+            mediaController.setAnchorView(videoFrame);
             mediaController.setMediaPlayer(player.getPlayerControl());
             mediaController.setEnabled(true);
         }
@@ -178,7 +158,7 @@ public class OkVideoView extends RelativeLayout implements
     /**
      * 设置视频uri
      */
-    public void setVideoUri(Uri videoUri, int contentType) {
+    public void setVideoUri(Uri videoUri) {
         uri = videoUri;
 
         if (uri == null) {
@@ -192,43 +172,18 @@ public class OkVideoView extends RelativeLayout implements
         player.replaceRenderBuilder(OkPlayerUtils.getRendererBuilder(getContext(), uri, OkPlayerUtils.TYPE_OTHER));
         player.prepare();
         player.pushSurface(true);
+        player.seekTo(0);
         player.setPlayWhenReady(true);
-
-//        if (!useExo) {
-//            videoView.setVideoURI(uri);
-//        } else {
-//            if (uri == null) {
-//                player.replaceRenderBuilder(null);
-//            } else {
-//                emExoPlayer.replaceRenderBuilder(getRendererBuilder(VideoType.get(uri), uri, defaultMediaType));
-//                listenerMux.setNotifiedCompleted(false);
-//            }
-//
-//            //Makes sure the listeners get the onPrepared callback
-//            listenerMux.setNotifiedPrepared(false);
-//            emExoPlayer.seekTo(0);
-//        }
     }
 
     public void onNewIntent() {
-        if (player != null) {
-            playerPosition = player.getCurrentPosition();
-            player.release();
-            player = null;
-//            eventLogger.endSession();
-//            eventLogger = null;
-        }
-        playerPosition = 0;
+        release();
     }
 
-    public void onResume() {
-//        String storagePath = Environment.getExternalStorageDirectory().getAbsolutePath();
-//        uri = Uri.parse(storagePath + File.separator + "0.mp4");
+    public void onResume(Uri uri) {
         if (player == null) {
-            initExoPlayer();
-//            setVideoUri(uri,OkPlayerUtils.TYPE_OTHER);
+            setVideoUri(uri);
         } else {
-//            player.setBackgrounded(false);
             player.setPlayWhenReady(true);
         }
     }
@@ -256,38 +211,13 @@ public class OkVideoView extends RelativeLayout implements
     public void release() {
         if (player != null) {
             player.release();
+            player = null;
         }
+        playerPosition = 0;
 
         if (audioCapabilitiesReceiver != null) {
             audioCapabilitiesReceiver.unregister();
             audioCapabilitiesReceiver = null;
-        }
-    }
-
-    /**
-     * 设置loading界面
-     */
-    public void setPreviewImage(Drawable drawable) {
-        if (previewImageView != null) {
-            previewImageView.setImageDrawable(drawable);
-        }
-    }
-
-    public void setPreviewImage(int resourceId) {
-        if (previewImageView != null) {
-            previewImageView.setImageResource(resourceId);
-        }
-    }
-
-    public void setPreviewImage(Bitmap bitmap) {
-        if (previewImageView != null) {
-            previewImageView.setImageBitmap(bitmap);
-        }
-    }
-
-    public void setPreviewImage(Uri uri) {
-        if (previewImageView != null) {
-            previewImageView.setImageURI(uri);
         }
     }
 
@@ -297,7 +227,6 @@ public class OkVideoView extends RelativeLayout implements
     @Override
     public void onStateChanged(boolean playWhenReady, int playbackState) {
         if (playbackState == ExoPlayer.STATE_ENDED) {
-//            showControls();
         }
 //        playerStateTextView.setText(text);
 //        updateButtonVisibilities();
@@ -305,24 +234,15 @@ public class OkVideoView extends RelativeLayout implements
 
     @Override
     public void onError(Exception e) {
-        if (e instanceof UnsupportedDrmException) {
-            // Special case DRM failures.
-            UnsupportedDrmException unsupportedDrmException = (UnsupportedDrmException) e;
-            String string = Util.SDK_INT < 18 ? "Protected content not supported on API levels below 18"
-                    : unsupportedDrmException.reason == UnsupportedDrmException.REASON_UNSUPPORTED_SCHEME
-                    ? "This device does not support the required DRM scheme" : "An unknown DRM error occurred";
-//            Toast.makeText(getApplicationContext(), string, Toast.LENGTH_LONG).show();
-        }
-//        playerNeedsPrepare = true;
-//        showControls();
+
     }
 
     @Override
     public void onVideoSizeChanged(int width, int height, int unappliedRotationDegrees, float pixelWidthHeightRatio) {
 //        shutterView.setVisibility(View.GONE);
         //视频比例改变时,同时改变videoFrame的高宽比例
-        videoFrame.setAspectRatio(
-                height == 0 ? 1 : (width * pixelWidthHeightRatio) / height);
+//        videoFrame.setAspectRatio(
+//                height == 0 ? 1 : (width * pixelWidthHeightRatio) / height);
     }
 
     /**
@@ -371,7 +291,7 @@ public class OkVideoView extends RelativeLayout implements
     }
 
     /**
-     * Monitors the view click events to show the default controls if they are enabled.
+     * 手势监听
      */
     public class CustomTouchListener extends GestureDetector.SimpleOnGestureListener implements OnTouchListener {
         private GestureDetector gestureDetector;
@@ -388,52 +308,16 @@ public class OkVideoView extends RelativeLayout implements
 
         @Override
         public boolean onSingleTapConfirmed(MotionEvent e) {
-            if (mediaController != null && titleBar != null) {
-                toggleShowController();
+            if (mediaController == null) {
+                return false;
             }
-//            if (bus != null) {
-//                bus.post(new EMVideoViewClickedEvent());
-//            }
+
+            if (mediaController.isShowing()) {
+                mediaController.hide();
+            } else {
+                mediaController.show(5000);
+            }
             return true;
         }
     }
-
-
-    private void toggleShowController() {
-        if (mediaController.isShowing()) {
-            titleBar.setVisibility(GONE);
-            mediaController.hide();
-//            mHandler.removeMessages(1);
-        } else {
-            mediaController.show(5000);
-            titleBar.setVisibility(VISIBLE);
-
-            getHandler().postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    titleBar.setVisibility(VISIBLE);
-                }
-            },5000);
-//            Message message = mHandler.obtainMessage(1);
-
-//            mHandler.sendMessageDelayed(message, 5000);
-        }
-    }
-
-    private final Handler mHandler = new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-            int pos;
-            switch (msg.what) {
-                case 1:
-                    mediaController.hide();
-                    titleBar.setVisibility(GONE);
-                    break;
-                default:
-                    break;
-            }
-        }
-    };
-
-
 }

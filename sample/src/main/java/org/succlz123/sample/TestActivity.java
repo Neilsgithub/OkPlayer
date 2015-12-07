@@ -7,7 +7,6 @@ import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.view.WindowManager;
 
-import org.succlz123.okplayer.utils.OkPlayerUtils;
 import org.succlz123.okplayer.view.OkVideoView;
 
 import java.io.File;
@@ -17,8 +16,7 @@ import java.io.File;
  */
 public class TestActivity extends AppCompatActivity {
     private OkVideoView mOkVideoView;
-    private Uri uri;
-    private int contentType;
+    private Uri mUri;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,16 +25,13 @@ public class TestActivity extends AppCompatActivity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_test);
+
         mOkVideoView = (OkVideoView) findViewById(R.id.ok_video_view);
 
-//        Intent intent = getIntent();
-//
-//        String storagePath = Environment.getExternalStorageDirectory().getAbsolutePath();
-//        uri = Uri.parse(storagePath + File.separator + "0.mp4");
-//        contentType = intent.getIntExtra(OkPlayerUtils.CONTENT_TYPE,
-//                OkPlayerUtils.inferContentType(uri, intent.getStringExtra(OkPlayerUtils.TYPE)));
-//
-//        okExoVideoView.setVideoUri(uri, contentType);
+        String storagePath = Environment.getExternalStorageDirectory().getAbsolutePath();
+        mUri = Uri.parse(storagePath + File.separator + "0.mp4");
+
+        mOkVideoView.setVideoUri(mUri);
     }
 
     @Override
@@ -48,15 +43,8 @@ public class TestActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        mOkVideoView.onResume();
         Intent intent = getIntent();
-//        uri = intent.getData();
-        String storagePath = Environment.getExternalStorageDirectory().getAbsolutePath();
-        uri = Uri.parse(storagePath + File.separator + "0.mp4");
-        contentType = intent.getIntExtra(OkPlayerUtils.CONTENT_TYPE,
-                OkPlayerUtils.inferContentType(uri, intent.getStringExtra(OkPlayerUtils.TYPE)));
-
-        mOkVideoView.setVideoUri(uri, contentType);
+        mOkVideoView.onResume(mUri);
     }
 
     @Override

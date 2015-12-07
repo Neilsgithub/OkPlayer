@@ -6,7 +6,6 @@ import android.text.TextUtils;
 
 import com.google.android.exoplayer.util.Util;
 
-import org.succlz123.okplayer.OkPlayer;
 import org.succlz123.okplayer.builder.ExtractorRendererBuilder;
 import org.succlz123.okplayer.builder.HlsRendererBuilder;
 import org.succlz123.okplayer.builder.RendererBuilder;
@@ -17,6 +16,11 @@ import org.succlz123.okplayer.builder.RendererBuilder;
 public class OkPlayerUtils {
     public static final String CONTENT_TYPE = "content_type";
     public static final String TYPE = "type";
+
+    public static final String CONTENT_EXT_EXTRA = "type";
+    public static final String EXT_DASH = ".mpd";
+    public static final String EXT_SS = ".ism";
+    public static final String EXT_HLS = ".m3u8";
 
     public static final int TYPE_DASH = 0;
     public static final int TYPE_SS = 1;
@@ -31,11 +35,11 @@ public class OkPlayerUtils {
         String lastPathSegment = !TextUtils.isEmpty(fileExtension) ? "." + fileExtension : uri.getLastPathSegment();
         if (lastPathSegment == null) {
             return TYPE_OTHER;
-        } else if (lastPathSegment.endsWith(OkPlayer.EXT_DASH)) {
+        } else if (lastPathSegment.endsWith(EXT_DASH)) {
             return TYPE_DASH;
-        } else if (lastPathSegment.endsWith(OkPlayer.EXT_SS)) {
+        } else if (lastPathSegment.endsWith(EXT_SS)) {
             return TYPE_SS;
-        } else if (lastPathSegment.endsWith(OkPlayer.EXT_HLS)) {
+        } else if (lastPathSegment.endsWith(EXT_HLS)) {
             return TYPE_HLS;
         } else {
             return TYPE_OTHER;
@@ -47,7 +51,7 @@ public class OkPlayerUtils {
      * MPEG组织 HTTP动态自适应流媒体
      * 苹果的HLS HTTP Live Streaming
      * Adobe的HDS HTTP Dynamic Streaming
-     * <p>
+     * <p/>
      * 根据contentType,返回具体的渲染器
      */
     public static RendererBuilder getRendererBuilder(Context context, Uri uri, int contentType) {

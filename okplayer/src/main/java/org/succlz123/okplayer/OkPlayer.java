@@ -16,6 +16,7 @@ import com.google.android.exoplayer.audio.AudioTrack;
 import com.google.android.exoplayer.chunk.BaseChunkSampleSourceEventListener;
 import com.google.android.exoplayer.chunk.ChunkSampleSource;
 import com.google.android.exoplayer.chunk.Format;
+import com.google.android.exoplayer.drm.StreamingDrmSessionManager;
 import com.google.android.exoplayer.hls.HlsSampleSource;
 import com.google.android.exoplayer.text.Cue;
 import com.google.android.exoplayer.upstream.BandwidthMeter;
@@ -44,29 +45,25 @@ public class OkPlayer implements
         ChunkSampleSource.EventListener,
         MediaCodecVideoTrackRenderer.EventListener,
         MediaCodecAudioTrackRenderer.EventListener,
+        StreamingDrmSessionManager.EventListener,
         DebugTextViewHelper.Provider {
-
-    public static final String CONTENT_EXT_EXTRA = "type";
-    public static final String EXT_DASH = ".mpd";
-    public static final String EXT_SS = ".ism";
-    public static final String EXT_HLS = ".m3u8";
 
     /**
      * 播放器状态
      * STATE_IDLE : 播放器没有准备好,也没有开始准备
-     * <p>
+     * <p/>
      * STATE_PREPARING : 播放器开始准备
-     * <p>
+     * <p/>
      * STATE_BUFFERING : 播放器已经准备好,但是不能从当前位置开始播放
      * 1.由TrackRenderer决定,通常发生在需要更多的数据
      * 2.正在缓冲的时候
-     * <p>
+     * <p/>
      * STATE_BUFFERING : 播放器已经准备好,可以从当前位置开始播放
      * 1.setPlayWhenReady(boolean)返回true,开始播放
      * 2.setPlayWhenReady(boolean)返回false,暂停播放
-     * <p>
+     * <p/>
      * STATE_ENDED : 播放器已经播放完成
-     * <p>
+     * <p/>
      * TRACK_DISABLED : 可以做为setSelectedTrack(int, int)的第二个参数来禁用渲染
      * TRACK_DEFAULT : 可以做为setSelectedTrack(int, int)的第二个参数来选择默认的轨道
      */
@@ -291,7 +288,9 @@ public class OkPlayer implements
      * 释放播放器
      */
     public void release() {
-        rendererBuilder.cancel();
+        if (rendererBuilder != null) {
+            rendererBuilder.cancel();
+        }
         rendererBuildingState = RENDERER_BUILDING_STATE_IDLE;
         surface = null;
         player.release();
@@ -349,7 +348,7 @@ public class OkPlayer implements
 
     /**
      * {@link  }
-     * <p>
+     * <p/>
      * 报告播放器状态
      */
     private void maybeReportPlayerState() {
@@ -389,7 +388,7 @@ public class OkPlayer implements
      */
     @Override
     public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
-
+        maybeReportPlayerState();
     }
 
     @Override
@@ -399,7 +398,10 @@ public class OkPlayer implements
 
     @Override
     public void onPlayerError(ExoPlaybackException error) {
-        error.toString();
+        rendererBuildingState = RENDERER_BUILDING_STATE_IDLE;
+        for (OkPlayerListener listener : listeners) {
+            listener.onError(error);
+        }
     }
 
     /**
@@ -407,12 +409,16 @@ public class OkPlayer implements
      */
     @Override
     public void onDecoderInitializationError(MediaCodecTrackRenderer.DecoderInitializationException e) {
-
+        if (internalErrorListener != null) {
+            internalErrorListener.onDecoderInitializationError(e);
+        }
     }
 
     @Override
     public void onCryptoError(MediaCodec.CryptoException e) {
-        e.toString();
+        if (internalErrorListener != null) {
+            internalErrorListener.onCryptoError(e);
+        }
     }
 
     @Override
@@ -425,12 +431,16 @@ public class OkPlayer implements
      */
     @Override
     public void onDroppedFrames(int count, long elapsed) {
-
+        if (infoListener != null) {
+            infoListener.onDroppedFrames(count, elapsed);
+        }
     }
 
     @Override
     public void onVideoSizeChanged(int width, int height, int unappliedRotationDegrees, float pixelWidthHeightRatio) {
-
+        for (OkPlayerListener listener : listeners) {
+            listener.onVideoSizeChanged(width, height, unappliedRotationDegrees, pixelWidthHeightRatio);
+        }
     }
 
     @Override
@@ -443,12 +453,16 @@ public class OkPlayer implements
      */
     @Override
     public void onAudioTrackInitializationError(AudioTrack.InitializationException e) {
-
+        if (internalErrorListener != null) {
+            internalErrorListener.onAudioTrackInitializationError(e);
+        }
     }
 
     @Override
     public void onAudioTrackWriteError(AudioTrack.WriteException e) {
-
+        if (internalErrorListener != null) {
+            internalErrorListener.onAudioTrackWriteError(e);
+        }
     }
 
     /**
@@ -473,7 +487,9 @@ public class OkPlayer implements
 
     @Override
     public void onLoadError(int sourceId, IOException e) {
-
+        if (internalErrorListener != null) {
+            internalErrorListener.onLoadError(sourceId, e);
+        }
     }
 
     @Override
@@ -483,7 +499,15 @@ public class OkPlayer implements
 
     @Override
     public void onDownstreamFormatChanged(int sourceId, Format format, int trigger, long mediaTimeMs) {
-
+        if (infoListener == null) {
+            return;
+        }
+        if (sourceId == TYPE_VIDEO) {
+            videoFormat = format;
+            infoListener.onVideoFormatEnabled(format, trigger, mediaTimeMs);
+        } else if (sourceId == TYPE_AUDIO) {
+            infoListener.onAudioFormatEnabled(format, trigger, mediaTimeMs);
+        }
     }
 
     /**
@@ -491,7 +515,24 @@ public class OkPlayer implements
      */
     @Override
     public void onBandwidthSample(int elapsedMs, long bytes, long bitrate) {
+        if (infoListener != null) {
+            infoListener.onBandwidthSample(elapsedMs, bytes, bitrate);
+        }
+    }
 
+    /**
+     * {@link StreamingDrmSessionManager.EventListener}
+     */
+    @Override
+    public void onDrmKeysLoaded() {
+
+    }
+
+    @Override
+    public void onDrmSessionManagerError(Exception e) {
+        if (internalErrorListener != null) {
+            internalErrorListener.onDrmSessionManagerError(e);
+        }
     }
 
     /**
@@ -516,5 +557,4 @@ public class OkPlayer implements
     public long getCurrentPosition() {
         return player.getCurrentPosition();
     }
-
 }

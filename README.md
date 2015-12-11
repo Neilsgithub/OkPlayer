@@ -7,7 +7,7 @@ This is an android multimedia player, simple wraps for [Google-ExoPlayer](https:
 Gradle:
 
 ```
-compile 'org.succlz123.okplayer:okplayer:0.0.1'
+compile 'org.succlz123.okplayer:okplayer:0.0.2'
 ```
 
 # Use

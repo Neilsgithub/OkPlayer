@@ -37,7 +37,6 @@ import org.succlz123.okplayer.OkPlayer;
  * A {@link RendererBuilder} for streams that can be read using an {@link Extractor}.
  */
 public class ExtractorRendererBuilder implements RendererBuilder {
-
     private static final int BUFFER_SEGMENT_SIZE = 64 * 1024;
     private static final int BUFFER_SEGMENT_COUNT = 256;
 
@@ -56,7 +55,7 @@ public class ExtractorRendererBuilder implements RendererBuilder {
 
         Allocator allocator = new DefaultAllocator(BUFFER_SEGMENT_SIZE);
         DefaultBandwidthMeter bandwidthMeter = new DefaultBandwidthMeter(player.getMainHandler(),
-                null);
+                player);
 
         DataSource dataSource = new DefaultUriDataSource(context, bandwidthMeter, userAgent);
         ExtractorSampleSource sampleSource = new ExtractorSampleSource(uri, dataSource, allocator,

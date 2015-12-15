@@ -2,6 +2,7 @@ package org.succlz123.okplayer;
 
 import android.media.MediaCodec;
 import android.os.Handler;
+import android.os.Looper;
 import android.view.Surface;
 
 import com.google.android.exoplayer.CodecCounters;
@@ -11,6 +12,7 @@ import com.google.android.exoplayer.ExoPlayer;
 import com.google.android.exoplayer.MediaCodecAudioTrackRenderer;
 import com.google.android.exoplayer.MediaCodecTrackRenderer;
 import com.google.android.exoplayer.MediaCodecVideoTrackRenderer;
+import com.google.android.exoplayer.MediaFormat;
 import com.google.android.exoplayer.TrackRenderer;
 import com.google.android.exoplayer.audio.AudioTrack;
 import com.google.android.exoplayer.chunk.BaseChunkSampleSourceEventListener;
@@ -29,6 +31,7 @@ import org.succlz123.okplayer.listener.CaptionListener;
 import org.succlz123.okplayer.listener.Id3MetadataListener;
 import org.succlz123.okplayer.listener.InfoListener;
 import org.succlz123.okplayer.listener.InternalErrorListener;
+import org.succlz123.okplayer.listener.OkMuxListener;
 import org.succlz123.okplayer.listener.OkPlayerListener;
 
 import java.io.IOException;
@@ -58,7 +61,7 @@ public class OkPlayer implements
      * 1.由TrackRenderer决定,通常发生在需要更多的数据
      * 2.正在缓冲的时候
      * <p/>
-     * STATE_BUFFERING : 播放器已经准备好,可以从当前位置开始播放
+     * STATE_READY : 播放器已经准备好,可以从当前位置开始播放
      * 1.setPlayWhenReady(boolean)返回true,开始播放
      * 2.setPlayWhenReady(boolean)返回false,暂停播放
      * <p/>
@@ -157,6 +160,53 @@ public class OkPlayer implements
         return surface;
     }
 
+    public long getDuration() {
+        return player.getDuration();
+    }
+
+    public long getBufferedPosition() {
+        return player.getBufferedPosition();
+    }
+
+    public int getBufferedPercentage() {
+        return player.getBufferedPercentage();
+    }
+
+    public Looper getPlaybackLooper() {
+        return player.getPlaybackLooper();
+    }
+
+    public int getTrackCount(int rendererIndex) {
+        return player.getTrackCount(rendererIndex);
+    }
+
+    public MediaFormat getTrackFormat(int rendererIndex, int trackIndex) {
+        return player.getTrackFormat(rendererIndex, trackIndex);
+    }
+
+    /**
+     * {@link DebugTextViewHelper.Provider}
+     */
+    @Override
+    public Format getFormat() {
+        return videoFormat;
+    }
+
+    @Override
+    public BandwidthMeter getBandwidthMeter() {
+        return bandwidthMeter;
+    }
+
+    @Override
+    public CodecCounters getCodecCounters() {
+        return codecCounters;
+    }
+
+    @Override
+    public long getCurrentPosition() {
+        return player.getCurrentPosition();
+    }
+
     /**
      * 自定义view时使用
      */
@@ -191,32 +241,6 @@ public class OkPlayer implements
         return backgrounded;
     }
 
-    /**
-     * backgrounded=true 播放器暂停视频渲染器
-     * backgrounded=false 播放器界面从后台重新进入,恢复视频播放(渲染器)
-     */
-    public void setBackgrounded(boolean backgrounded) {
-        if (this.backgrounded == backgrounded) {
-            return;
-        }
-        this.backgrounded = backgrounded;
-        if (backgrounded) {
-            //返回对应渲染器的计数
-            videoTrackToRestore = getSelectedTrack(TYPE_VIDEO);
-            //TRACK_DISABLED = -1
-            setSelectedTrack(TYPE_VIDEO, TRACK_DISABLED);
-//            setSelectedTrack(TYPE_AUDIO, TRACK_DISABLED);
-//            position = player.getCurrentPosition();
-            blockingClearSurface();
-        } else {
-            //参数2,如果是一个负数或大于或等于渲染器对应的计数,将禁用对应渲染器
-            //TRACK_DEFAULT = 0
-            setSelectedTrack(TYPE_VIDEO, TRACK_DEFAULT);
-//            setSelectedTrack(TYPE_AUDIO, TRACK_DEFAULT);
-//            player.seekTo(position);
-        }
-    }
-
     public InternalErrorListener getInternalErrorListener() {
         return internalErrorListener;
     }
@@ -247,6 +271,32 @@ public class OkPlayer implements
 
     public void setInfoListener(InfoListener infoListener) {
         this.infoListener = infoListener;
+    }
+
+    /**
+     * backgrounded=true 播放器暂停视频渲染器
+     * backgrounded=false 播放器界面从后台重新进入,恢复视频播放(渲染器)
+     */
+    public void setBackgrounded(boolean backgrounded) {
+        if (this.backgrounded == backgrounded) {
+            return;
+        }
+        this.backgrounded = backgrounded;
+        if (backgrounded) {
+            //返回对应渲染器的计数
+            videoTrackToRestore = getSelectedTrack(TYPE_VIDEO);
+            //TRACK_DISABLED = -1
+            setSelectedTrack(TYPE_VIDEO, TRACK_DISABLED);
+//            setSelectedTrack(TYPE_AUDIO, TRACK_DISABLED);
+//            position = player.getCurrentPosition();
+            blockingClearSurface();
+        } else {
+            //参数2,如果是一个负数或大于或等于渲染器对应的计数,将禁用对应渲染器
+            //TRACK_DEFAULT = 0
+            setSelectedTrack(TYPE_VIDEO, TRACK_DEFAULT);
+//            setSelectedTrack(TYPE_AUDIO, TRACK_DEFAULT);
+//            player.seekTo(position);
+        }
     }
 
     /**
@@ -293,6 +343,7 @@ public class OkPlayer implements
         }
         rendererBuildingState = RENDERER_BUILDING_STATE_IDLE;
         surface = null;
+        listeners.clear();
         player.release();
     }
 
@@ -389,6 +440,9 @@ public class OkPlayer implements
     @Override
     public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
         maybeReportPlayerState();
+        for (OkPlayerListener listener : listeners) {
+            listener.onStateChanged(playWhenReady, playbackState);
+        }
     }
 
     @Override
@@ -421,6 +475,11 @@ public class OkPlayer implements
         }
     }
 
+    /**
+     * @param decoderName              解码器名字 OMX.qcom.audio.decoder.aac
+     * @param elapsedRealtimeMs        经过的实时毫秒
+     * @param initializationDurationMs 初始化持续时间
+     */
     @Override
     public void onDecoderInitialized(String decoderName, long elapsedRealtimeMs, long initializationDurationMs) {
 
@@ -428,6 +487,8 @@ public class OkPlayer implements
 
     /**
      * {@link MediaCodecVideoTrackRenderer.EventListener}
+     *
+     * @param count 掉帧的块
      */
     @Override
     public void onDroppedFrames(int count, long elapsed) {
@@ -443,6 +504,11 @@ public class OkPlayer implements
         }
     }
 
+    /**
+     * 绘制到surface上
+     *
+     * @param surface
+     */
     @Override
     public void onDrawnToSurface(Surface surface) {
 
@@ -463,6 +529,18 @@ public class OkPlayer implements
         if (internalErrorListener != null) {
             internalErrorListener.onAudioTrackWriteError(e);
         }
+    }
+
+    /**
+     * 在后台播放音频
+     *
+     * @param bufferSize             44100
+     * @param bufferSizeMs           250
+     * @param elapsedSinceLastFeedMs 自从上次注入的时间
+     */
+    @Override
+    public void onAudioTrackUnderrun(int bufferSize, long bufferSizeMs, long elapsedSinceLastFeedMs) {
+
     }
 
     /**
@@ -512,11 +590,21 @@ public class OkPlayer implements
 
     /**
      * {@link BandwidthMeter.EventListener}
+     *
+     * @param elapsedMs 加载到设定缓冲值,使用的时间
+     * @param bytes     加载的数据
+     * @param bitrate   比特率
      */
     @Override
     public void onBandwidthSample(int elapsedMs, long bytes, long bitrate) {
         if (infoListener != null) {
             infoListener.onBandwidthSample(elapsedMs, bytes, bitrate);
+        }
+
+        for (OkPlayerListener okPlayerListener : listeners) {
+            if (okPlayerListener instanceof OkMuxListener) {
+                ((OkMuxListener) okPlayerListener).onBandwidthSample(elapsedMs, bytes, bitrate);
+            }
         }
     }
 
@@ -533,28 +621,5 @@ public class OkPlayer implements
         if (internalErrorListener != null) {
             internalErrorListener.onDrmSessionManagerError(e);
         }
-    }
-
-    /**
-     * {@link DebugTextViewHelper.Provider}
-     */
-    @Override
-    public Format getFormat() {
-        return videoFormat;
-    }
-
-    @Override
-    public BandwidthMeter getBandwidthMeter() {
-        return bandwidthMeter;
-    }
-
-    @Override
-    public CodecCounters getCodecCounters() {
-        return codecCounters;
-    }
-
-    @Override
-    public long getCurrentPosition() {
-        return player.getCurrentPosition();
     }
 }

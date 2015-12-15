@@ -2,7 +2,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'com.jfrog.bintray'
 
-version = "0.0.2"
+version = "0.0.6"
 android {
     compileSdkVersion 23
     buildToolsVersion "23.0.2"
@@ -23,7 +23,7 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.google.android.exoplayer:exoplayer:r1.5.2'
+    compile 'com.google.android.exoplayer:exoplayer:r1.5.3'
 }
 
 def siteUrl = 'https://github.com/succlz123/okplayer' // 项目的主页

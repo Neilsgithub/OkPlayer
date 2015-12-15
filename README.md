@@ -7,13 +7,14 @@ This is an android multimedia player, simple wraps for [Google-ExoPlayer](https:
 Gradle:
 
 ```
-compile 'org.succlz123.okplayer:okplayer:0.0.2'
+compile 'org.succlz123.okplayer:okplayer:0.0.6'
 ```
 
 # Use
 
-see sample
-
+see [Sample](https://github.com/succlz123/OkPlayer/tree/master/sample/src/main/java/org/succlz123/sample)  
+or [BlueBoard](https://github.com/succlz123/BlueBoard/blob/master/app/src/main/java/org/succlz123/blueboard/controller/activity/video/VideoPlayActivity.java)
+ 
 # Contact Me
 
 Email: succlz123@gmail.com  

@@ -157,6 +157,10 @@ public class OkVideoView extends FrameLayout implements
      * 设置视频uri
      */
     public void setVideoUri(Uri videoUri) {
+        setVideoUri(videoUri, true);
+    }
+
+    public void setVideoUri(Uri videoUri, boolean defaultPlay) {
         uri = videoUri;
 
         if (uri == null) {
@@ -171,7 +175,7 @@ public class OkVideoView extends FrameLayout implements
         okPlayer.prepare();
         okPlayer.pushSurface(true);
         okPlayer.seekTo(0);
-        okPlayer.setPlayWhenReady(true);
+        okPlayer.setPlayWhenReady(defaultPlay);
     }
 
     public void onNewIntent() {

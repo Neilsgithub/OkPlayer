@@ -1,10 +1,5 @@
 package org.succlz123.okplayer;
 
-import android.media.MediaCodec;
-import android.os.Handler;
-import android.os.Looper;
-import android.view.Surface;
-
 import com.google.android.exoplayer.CodecCounters;
 import com.google.android.exoplayer.DummyTrackRenderer;
 import com.google.android.exoplayer.ExoPlaybackException;
@@ -34,6 +29,11 @@ import org.succlz123.okplayer.listener.InternalErrorListener;
 import org.succlz123.okplayer.listener.OkMuxListener;
 import org.succlz123.okplayer.listener.OkPlayerListener;
 
+import android.media.MediaCodec;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.Surface;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -54,19 +54,19 @@ public class OkPlayer implements
     /**
      * 播放器状态
      * STATE_IDLE : 播放器没有准备好,也没有开始准备
-     * <p/>
-     * STATE_PREPARING : 播放器开始准备
-     * <p/>
+     * <p>
+     * STATE_PREPARING : 播放器准备中
+     * <p>
      * STATE_BUFFERING : 播放器已经准备好,但是不能从当前位置开始播放
      * 1.由TrackRenderer决定,通常发生在需要更多的数据
      * 2.正在缓冲的时候
-     * <p/>
+     * <p>
      * STATE_READY : 播放器已经准备好,可以从当前位置开始播放
      * 1.setPlayWhenReady(boolean)返回true,开始播放
      * 2.setPlayWhenReady(boolean)返回false,暂停播放
-     * <p/>
+     * <p>
      * STATE_ENDED : 播放器已经播放完成
-     * <p/>
+     * <p>
      * TRACK_DISABLED : 可以做为setSelectedTrack(int, int)的第二个参数来禁用渲染
      * TRACK_DEFAULT : 可以做为setSelectedTrack(int, int)的第二个参数来选择默认的轨道
      */
@@ -81,6 +81,8 @@ public class OkPlayer implements
     /**
      * 渲染器状态
      * STATE_IDLE : 还没创建
+     * STATE_BUILDING : 正在创建
+     * BUILDING_STATE_BUILT : 创建完成
      */
     private static final int RENDERER_BUILDING_STATE_IDLE = 1;
     private static final int RENDERER_BUILDING_STATE_BUILDING = 2;
@@ -373,13 +375,11 @@ public class OkPlayer implements
         if (blockForSurfacePush) {
             //阻塞线程,直到消息发送到为止(发送消息的目标,用于识别消息的类型,消息内容)
             //surfaceView被销毁
-            player.blockingSendMessage(
-                    videoRenderer, MediaCodecVideoTrackRenderer.MSG_SET_SURFACE, surface);
+            player.blockingSendMessage(videoRenderer, MediaCodecVideoTrackRenderer.MSG_SET_SURFACE, surface);
         } else {
             //发送消息到指定的组件上,该消息会被传递到播放线程.
             //如果组件抛出ExoPlaybackException,这将作为一个error传递到播放器
-            player.sendMessage(
-                    videoRenderer, MediaCodecVideoTrackRenderer.MSG_SET_SURFACE, surface);
+            player.sendMessage(videoRenderer, MediaCodecVideoTrackRenderer.MSG_SET_SURFACE, surface);
         }
     }
 
@@ -398,8 +398,6 @@ public class OkPlayer implements
     }
 
     /**
-     * {@link  }
-     * <p/>
      * 报告播放器状态
      */
     private void maybeReportPlayerState() {
@@ -420,15 +418,16 @@ public class OkPlayer implements
      * 获取播放状态
      */
     public int getPlaybackState() {
+        //渲染器在创建中,返回播放器准备中
         if (rendererBuildingState == RENDERER_BUILDING_STATE_BUILDING) {
             return STATE_PREPARING;
         }
         int playerState = player.getPlaybackState();
-        //当渲染器准备好了而且播放器状态还没开始准备,返回播放播放器开始准备
         if (rendererBuildingState == RENDERER_BUILDING_STATE_BUILT && playerState == STATE_IDLE) {
             // This is an edge case where the renderers are built, but are still being passed to the
             // player's playback thread.
-            //当渲染器创建好,但是任然会被传递到播放器的播放线程
+            // 这是一个边缘情况,当渲染器在创建完成,而播放器没有开始准备的时候,返回播放准备中.
+            // 但是仍然会被传递到播放器的播放线程
             return STATE_PREPARING;
         }
         return playerState;

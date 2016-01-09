@@ -1,15 +1,13 @@
 package org.succlz123.sample;
 
+import org.succlz123.okplayer.utils.OkPlayerUtils;
+import org.succlz123.okplayer.view.OkVideoView;
+
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.view.WindowManager;
-
-import org.succlz123.okplayer.view.OkVideoView;
-
-import java.io.File;
 
 /**
  * Created by succlz123 on 15/12/2.
@@ -28,9 +26,11 @@ public class TestActivity extends AppCompatActivity {
 
         mOkVideoView = (OkVideoView) findViewById(R.id.ok_video_view);
 
-        String storagePath = Environment.getExternalStorageDirectory().getAbsolutePath();
-        mUri = Uri.parse(storagePath + File.separator + "0.mp4");
+//        String storagePath = Environment.getExternalStorageDirectory().getAbsolutePath();
+//        mUri = Uri.parse(storagePath + File.separator + "0.mp4");
 
+        mUri = Uri.parse("http://121.41.72.231/hls/demo1.m3u8");
+        mOkVideoView.setRendererContentType(OkPlayerUtils.TYPE_HLS);
         mOkVideoView.setVideoUri(mUri);
     }
 

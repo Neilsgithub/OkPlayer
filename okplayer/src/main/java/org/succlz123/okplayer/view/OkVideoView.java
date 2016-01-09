@@ -1,5 +1,16 @@
 package org.succlz123.okplayer.view;
 
+import com.google.android.exoplayer.AspectRatioFrameLayout;
+import com.google.android.exoplayer.audio.AudioCapabilities;
+import com.google.android.exoplayer.audio.AudioCapabilitiesReceiver;
+import com.google.android.exoplayer.text.Cue;
+
+import org.succlz123.okplayer.OkPlayer;
+import org.succlz123.okplayer.R;
+import org.succlz123.okplayer.listener.CaptionListener;
+import org.succlz123.okplayer.listener.OkPlayerListener;
+import org.succlz123.okplayer.utils.OkPlayerUtils;
+
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -13,17 +24,6 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.MediaController;
-
-import com.google.android.exoplayer.AspectRatioFrameLayout;
-import com.google.android.exoplayer.audio.AudioCapabilities;
-import com.google.android.exoplayer.audio.AudioCapabilitiesReceiver;
-import com.google.android.exoplayer.text.Cue;
-
-import org.succlz123.okplayer.OkPlayer;
-import org.succlz123.okplayer.R;
-import org.succlz123.okplayer.listener.CaptionListener;
-import org.succlz123.okplayer.listener.OkPlayerListener;
-import org.succlz123.okplayer.utils.OkPlayerUtils;
 
 import java.util.List;
 
@@ -46,6 +46,7 @@ public class OkVideoView extends FrameLayout implements
 
     private Uri uri;
     private long playerPosition;
+    private int rendererContentType = OkPlayerUtils.TYPE_OTHER;
 
     public OkVideoView(Context context) {
         super(context);
@@ -171,7 +172,7 @@ public class OkVideoView extends FrameLayout implements
             initExoPlayer();
         }
 
-        okPlayer.replaceRenderBuilder(OkPlayerUtils.getRendererBuilder(getContext(), uri, OkPlayerUtils.TYPE_OTHER));
+        okPlayer.replaceRenderBuilder(OkPlayerUtils.getRendererBuilder(getContext(), uri, rendererContentType));
         okPlayer.prepare();
         okPlayer.pushSurface(true);
         okPlayer.seekTo(0);
@@ -228,6 +229,10 @@ public class OkVideoView extends FrameLayout implements
             return;
         }
         okPlayer.addListener(listener);
+    }
+
+    public void setRendererContentType(int rendererContentType) {
+        this.rendererContentType = rendererContentType;
     }
 
     public int getPlaybackState() {
@@ -364,9 +369,6 @@ public class OkVideoView extends FrameLayout implements
         okPlayer.setBackgrounded(backgrounded);
     }
 
-    /**
-     * 手势监听
-     */
     public class CustomTouchListener extends GestureDetector.SimpleOnGestureListener implements OnTouchListener {
         private GestureDetector gestureDetector;
 
